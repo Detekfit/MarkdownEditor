@@ -1,0 +1,5 @@
+{
+  "name": "Markdown Editor",
+  "description": "A sleek, dark-themed, and feature-rich live Markdown editor with a split-pane view, a command toolbar, and an intelligent slash-command menu for a seamless writing experience.",
+  "requestFramePermissions": []
+}

@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ToolbarItem, SlashCommand, ActionParams } from './types';
 
 // Helper function for text manipulation with toggle functionality
@@ -121,6 +120,8 @@ const CodeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height
 const ListIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>;
 const ListOrderedIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="10" x2="21" y1="6" y2="6"/><line x1="10" x2="21" y1="12" y2="12"/><line x1="10" x2="21" y1="18" y2="18"/><path d="M4 6h1v4"/><path d="m2 10h3"/><path d="M3 18h2v-2a2 2 0 1 0-2-2v2Z"/></svg>;
 const ImagePlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><line x1="16" x2="22" y1="5" y2="5"/><line x1="19" x2="19" y1="2" y2="8"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>;
+const TableIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>;
+const CheckSquareIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>;
 
 
 const createAction = (handler: (textarea: HTMLTextAreaElement, markdown: string, setMarkdown: (v: string) => void) => void) => {
@@ -150,8 +151,10 @@ export const TOOLBAR_ITEMS: ToolbarItem[] = [
     { id: 'code', label: 'Code Block', icon: <CodeIcon />, type: 'button', action: createAction((t, m, s) => applyFormatting(t, m, s, '\n```\n', '\n```\n', 'code snippet')) },
     { id: 'link', label: 'Link', icon: <LinkIcon />, type: 'button', action: createAction((t, m, s) => applyFormatting(t, m, s, '[', '](url)', 'link text')) },
     { id: 'image', label: 'Image', icon: <ImagePlusIcon />, type: 'button', action: createAction((t, m, s) => applyFormatting(t, m, s, '![', '](image_url)', 'alt text')) },
+    { id: 'table', label: 'Table', icon: <TableIcon />, type: 'button' },
     { id: 'ul', label: 'Bullet List', icon: <ListIcon />, type: 'button', action: createAction((t, m, s) => applyLineFormatting(t, m, s, '- ')) },
     { id: 'ol', label: 'Numbered List', icon: <ListOrderedIcon />, type: 'button', action: createAction((t, m, s) => applyLineFormatting(t, m, s, '1. ')) },
+    { id: 'task', label: 'Task List', icon: <CheckSquareIcon />, type: 'button', action: createAction((t, m, s) => applyLineFormatting(t, m, s, '- [ ] ')) },
 ];
 
 export const SLASH_COMMANDS: SlashCommand[] = [
@@ -166,8 +169,10 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     { id: 'code', command: 'code', label: 'Code Block', description: 'Insert a code block', action: createAction((t, m, s) => applyFormatting(t, m, s, '\n```\n', '\n```\n', 'code snippet')) },
     { id: 'link', command: 'link', label: 'Link', description: 'Insert a hyperlink', action: createAction((t, m, s) => applyFormatting(t, m, s, '[', '](url)', 'link text')) },
     { id: 'image', command: 'image', label: 'Image', description: 'Insert an image', action: createAction((t, m, s) => applyFormatting(t, m, s, '![', '](image_url)', 'alt text')) },
+    { id: 'table', command: 'table', label: 'Table', description: 'Insert a table', action: () => {} },
     { id: 'ul', command: 'ul', label: 'Bullet List', description: 'Create a bulleted list', action: createAction((t, m, s) => applyLineFormatting(t, m, s, '- ')) },
     { id: 'ol', command: 'ol', label: 'Numbered List', description: 'Create a numbered list', action: createAction((t, m, s) => applyLineFormatting(t, m, s, '1. ')) },
+    { id: 'task', command: 'task', label: 'Task List', description: 'Add a to-do item', action: createAction((t, m, s) => applyLineFormatting(t, m, s, '- [ ] '))},
     { id: 'hr', command: 'hr', label: 'Divider', description: 'Insert a horizontal rule', action: createAction((t, m, s) => applyLineFormatting(t, m, s, '\n---\n')) },
 ];
 
@@ -192,6 +197,18 @@ This is a sleek, intuitive, and powerful live Markdown editor built with React a
 
 1. Ordered Item 1
 2. Ordered Item 2
+
+**Task List:**
+- [x] Write the code
+- [ ] Add the tests
+- [ ] Deploy to production
+
+**Table:**
+| Feature    | Status |
+| ---------- | ------ |
+| Tables     | ✅     |
+| Task Lists | ✅     |
+
 
 **Code:**
 \`\`\`javascript

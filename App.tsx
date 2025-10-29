@@ -5,6 +5,59 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { TOOLBAR_ITEMS, SLASH_COMMANDS, DEFAULT_MARKDOWN } from './constants';
 import type { ToolbarItem, SlashCommand, ActionParams } from './types';
 
+// Component: TableDialog
+interface TableDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onInsert: (tableMarkdown: string) => void;
+}
+const TableDialog: React.FC<TableDialogProps> = ({ isOpen, onClose, onInsert }) => {
+  const [rows, setRows] = useState(2);
+  const [cols, setCols] = useState(2);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const generateTableMarkdown = () => {
+    if (rows < 0 || cols < 1) return '';
+    const header = `| ${Array.from({ length: cols }, (_, i) => `Header ${i + 1}`).join(' | ')} |`;
+    const divider = `| ${Array.from({ length: cols }, () => '---').join(' | ')} |`;
+    const body = Array.from({ length: Math.max(0, rows) }, () =>
+      `| ${Array.from({ length: cols }, () => 'Cell').join(' | ')} |`
+    ).join('\n');
+    
+    return rows > 0 ? `${header}\n${divider}\n${body}` : `${header}\n${divider}`;
+  };
+
+  const handleInsert = () => {
+    onInsert(generateTableMarkdown());
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-surface border border-subtle-border rounded-lg shadow-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-xl font-bold mb-4 text-main-text">Create Table</h2>
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="columns" className="block text-sm font-medium text-zinc-400 mb-1">Columns</label>
+            <input type="number" id="columns" value={cols} onChange={(e) => setCols(Math.max(1, parseInt(e.target.value, 10) || 1))} min="1" className="w-full bg-zinc-900 border border-subtle-border rounded-md px-3 py-2 text-main-text focus:outline-none focus:ring-2 focus:ring-accent" />
+          </div>
+          <div>
+            <label htmlFor="rows" className="block text-sm font-medium text-zinc-400 mb-1">Body Rows</label>
+            <input type="number" id="rows" value={rows} onChange={(e) => setRows(Math.max(0, parseInt(e.target.value, 10) || 0))} min="0" className="w-full bg-zinc-900 border border-subtle-border rounded-md px-3 py-2 text-main-text focus:outline-none focus:ring-2 focus:ring-accent" />
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end space-x-3">
+          <button onClick={onClose} className="px-4 py-2 rounded-md bg-zinc-800 text-main-text hover:bg-zinc-700 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-600">Cancel</button>
+          <button onClick={handleInsert} className="px-4 py-2 rounded-md bg-accent text-white hover:bg-amber-600 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400">Insert Table</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 // Component: ToolbarItemDropdown
 const ToolbarItemDropdown: React.FC<{
   item: ToolbarItem;
@@ -58,7 +111,7 @@ const ToolbarItemDropdown: React.FC<{
 
 
 // Component: Toolbar
-const Toolbar: React.FC<{ onAction: (item: { action?: (params: ActionParams) => void }) => void }> = ({ onAction }) => (
+const Toolbar: React.FC<{ onAction: (item: Partial<ToolbarItem> & { action?: (params: ActionParams) => void; }) => void }> = ({ onAction }) => (
   <div className="flex items-center flex-wrap p-2 bg-surface border-b border-subtle-border space-x-1 gap-y-1">
     {TOOLBAR_ITEMS.map((item) => {
       if (item.type === 'dropdown') {
@@ -135,8 +188,9 @@ const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({ commands, onSelect,
 // Component: Editor
 interface EditorProps extends ActionParams {
     className?: string;
+    onOpenTableDialog: () => void;
 }
-const Editor: React.FC<EditorProps> = ({ markdown, setMarkdown, textareaRef, className }) => {
+const Editor: React.FC<EditorProps> = ({ markdown, setMarkdown, textareaRef, className, onOpenTableDialog }) => {
     const [slashCommandState, setSlashCommandState] = useState<{
         isOpen: boolean;
         searchTerm: string;
@@ -153,14 +207,19 @@ const Editor: React.FC<EditorProps> = ({ markdown, setMarkdown, textareaRef, cla
         const textBefore = markdown.substring(0, triggerIndex);
         const textAfter = markdown.substring(triggerIndex + 2 + searchTerm.length);
 
-        setMarkdown(textBefore + textAfter);
+        const newMarkdown = textBefore + textAfter;
+        setMarkdown(newMarkdown);
         setSlashCommandState(null);
 
         setTimeout(() => {
             if (textareaRef.current) {
                 textareaRef.current.focus();
                 textareaRef.current.selectionStart = textareaRef.current.selectionEnd = triggerIndex;
-                command.action({ textareaRef, markdown: textBefore + textAfter, setMarkdown });
+                if (command.id === 'table') {
+                    onOpenTableDialog();
+                } else {
+                    command.action({ textareaRef, markdown: newMarkdown, setMarkdown });
+                }
             }
         }, 0);
     };
@@ -243,16 +302,53 @@ const Preview: React.FC<{ markdown: string, className?: string }> = ({ markdown,
 export default function App() {
   const [markdown, setMarkdown] = useLocalStorage<string>('markdown-content', DEFAULT_MARKDOWN);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const cursorPositionRef = useRef(0);
   const [view, setView] = useState<'edit' | 'preview'>('edit');
+  const [isTableDialogOpen, setTableDialogOpen] = useState(false);
   
-  const handleToolbarAction = useCallback((item: { action?: (params: ActionParams) => void }) => {
-    if (item.action) {
+  const openTableDialog = useCallback(() => {
+    if (textareaRef.current) {
+      cursorPositionRef.current = textareaRef.current.selectionStart;
+    }
+    setTableDialogOpen(true);
+  }, []);
+
+  const handleInsertTable = (tableString: string) => {
+    if (!textareaRef.current || !tableString) {
+      setTableDialogOpen(false);
+      return;
+    };
+
+    const start = cursorPositionRef.current;
+    
+    const textBefore = markdown.substring(0, start);
+    const prefix = (textBefore.length === 0 || textBefore.endsWith('\n\n')) ? '' : (textBefore.endsWith('\n') ? '\n' : '\n\n');
+
+    const newMarkdown = markdown.substring(0, start) + prefix + tableString + markdown.substring(start);
+    
+    setMarkdown(newMarkdown);
+    setTableDialogOpen(false);
+
+    setTimeout(() => {
+      textareaRef.current?.focus();
+      const selectionStart = start + prefix.length + 2; // After "| "
+      const headerText = 'Header 1';
+      const selectionEnd = selectionStart + headerText.length;
+      textareaRef.current?.setSelectionRange(selectionStart, selectionEnd);
+    }, 0);
+  };
+  
+  const handleToolbarAction = useCallback((item: Partial<ToolbarItem> & { action?: (params: ActionParams) => void }) => {
+    if (item.id === 'table') {
+      openTableDialog();
+    } else if (item.action) {
       item.action({ textareaRef, markdown, setMarkdown });
     }
-  }, [markdown, setMarkdown]);
+  }, [markdown, setMarkdown, openTableDialog]);
 
   return (
     <>
+        <TableDialog isOpen={isTableDialogOpen} onClose={() => setTableDialogOpen(false)} onInsert={handleInsertTable} />
         <main className="h-screen w-screen bg-surface flex flex-col font-sans">
             <header className="flex-shrink-0 flex items-center justify-between p-2 bg-surface border-b border-subtle-border">
                 <div>
@@ -272,7 +368,8 @@ export default function App() {
                     <Editor 
                         markdown={markdown} 
                         setMarkdown={setMarkdown} 
-                        textareaRef={textareaRef} 
+                        textareaRef={textareaRef}
+                        onOpenTableDialog={openTableDialog}
                         className={view === 'preview' ? 'hidden md:block' : 'block'}
                     />
                 </div>

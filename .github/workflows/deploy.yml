@@ -33,6 +33,10 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Include CNAME if present
+        run: |
+          if [ -f CNAME ]; then cp CNAME dist/CNAME; fi
+
       - name: SPA fallback (copy index.html to 404.html)
         run: cp dist/index.html dist/404.html
 
@@ -51,5 +55,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-

@@ -112,7 +112,7 @@ const ToolbarItemDropdown: React.FC<{
 
 // Component: Toolbar
 const Toolbar: React.FC<{ onAction: (item: Partial<ToolbarItem> & { action?: (params: ActionParams) => void; }) => void }> = ({ onAction }) => (
-  <div className="flex items-center flex-wrap p-2 bg-surface border-b border-subtle-border space-x-1 gap-y-1">
+  <div className="flex items-center flex-wrap p-2 bg-surface border-b border-subtle-border space-x-1 gap-y-1 flex-shrink-0">
     {TOOLBAR_ITEMS.map((item) => {
       if (item.type === 'dropdown') {
         return <ToolbarItemDropdown key={item.id} item={item} onAction={(action) => onAction({ action })} />;
@@ -263,13 +263,13 @@ const Editor: React.FC<EditorProps> = ({ markdown, setMarkdown, textareaRef, cla
         : [];
 
     return (
-        <div className={`relative h-full w-full ${className}`}>
+        <div className={`relative w-full flex flex-col min-h-0 ${className}`}>
              <div className="absolute top-0 left-0 -z-10 whitespace-pre-wrap invisible font-mono text-base p-4" ref={hiddenMirrorRef}></div>
             <textarea
                 ref={textareaRef}
                 value={markdown}
                 onChange={handleInputChange}
-                className="w-full h-full bg-surface text-main-text p-4 resize-none focus:outline-none font-mono text-base leading-relaxed"
+                className="w-full flex-1 min-h-0 overflow-y-auto bg-surface text-main-text p-4 resize-none focus:outline-none font-mono text-base leading-relaxed"
                 placeholder="Start writing your masterpiece..."
                 onKeyDown={(e) => {
                     if (slashCommandState?.isOpen && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Enter')) {
@@ -349,11 +349,8 @@ export default function App() {
   return (
     <>
         <TableDialog isOpen={isTableDialogOpen} onClose={() => setTableDialogOpen(false)} onInsert={handleInsertTable} />
-        <main className="h-screen w-screen bg-surface flex flex-col font-sans">
-            <header className="flex-shrink-0 flex items-center justify-between p-2 bg-surface border-b border-subtle-border">
-                <div>
-                    <h1 className="text-lg font-bold text-main-text">Markdown Editor</h1>
-                </div>
+        <main className="min-h-dvh w-full bg-surface flex flex-col font-sans overflow-x-hidden">
+            <header className="flex-shrink-0 flex items-center bg-surface">
                 <div className="md:hidden">
                     <div className="flex items-center bg-zinc-900 rounded-lg p-1">
                         <button onClick={() => setView('edit')} className={`px-3 py-1 text-sm rounded-md ${view === 'edit' ? 'bg-accent text-white' : 'text-main-text'}`}>Write</button>
@@ -363,19 +360,19 @@ export default function App() {
             </header>
             
             <div className="flex-grow flex flex-col md:flex-row min-h-0">
-                <div className="w-full md:w-1/2 flex flex-col md:border-r border-subtle-border">
+                <div className="w-full md:w-1/2 flex flex-col md:border-r border-subtle-border min-h-0 flex-1">
                     <Toolbar onAction={handleToolbarAction} />
                     <Editor 
                         markdown={markdown} 
                         setMarkdown={setMarkdown} 
                         textareaRef={textareaRef}
                         onOpenTableDialog={openTableDialog}
-                        className={view === 'preview' ? 'hidden md:block' : 'block'}
+                        className={`${view === 'preview' ? 'hidden md:flex' : 'flex'} flex-1 min-h-0`}
                     />
                 </div>
                 <Preview 
                     markdown={markdown}
-                    className={view === 'edit' ? 'hidden md:block' : 'block'}
+                    className={`${view === 'edit' ? 'hidden md:flex' : 'flex'} flex-1 min-h-0`}
                 />
             </div>
         </main>
